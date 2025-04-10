@@ -26,6 +26,7 @@ int angleMagnitude;
 */
 int current_angle;
 int target_angle;
+void calculate_target(); // calculate the new target angle nased on history of sensor readings
 void update_servos(); // send new angles to servos
 void calc_new_angle(); // calculate the new angle to send to the servos based on distance from target angle
 void move_servos_to(int); // set a new target angle for the servos to move to
@@ -69,25 +70,15 @@ void loop()
   unsigned long current_time = millis();
 
   history_add(analogRead(A0));
-  if(history_avg() >= 1000) {
-    move_servos_to(MAX_ANGLE);
-  } else {
-    move_servos_to(0);
-  }
-
-
+  calculate_target();
 
   //if (current_time > next_update) {
     //update_log = current_time + UPDATE_RATE;
-
-    //move_servo_to(map(sensorValue, 0, 1000, 0, 90)); // equivelent to toggleGradient
     update_servos(); // needs to be called every iteration
   //}
 
   if (current_time > next_log) {
     next_log = current_time + LOG_RATE;
-
-
     // message format [0 250 XXXX\n] 11 bytes total
     Serial.print(0); // To freeze the lower limit
     Serial.print(" ");
@@ -97,6 +88,10 @@ void loop()
     Serial.println(history_avg());
     //Serial.print("\n");
   }
+}
+
+void calculate_target() {
+  move_servos_to(map(history_avg(), 0, 1024, 0, 90));
 }
 
 void calc_new_angle() {
