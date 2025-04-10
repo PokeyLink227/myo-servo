@@ -24,14 +24,15 @@ int angleMagnitude;
 /* angle variables and functions
  * track the current angle globaly to enable non-blocking movement
 */
-enum servo_state {
-  Stopped,
-  Moving,
-};
 int current_angle;
 int target_angle;
-void update_servos();
-void move_servos_to(int);
+void update_servos(); // send new angles to servos
+void calc_new_angle(); // calculate the new angle to send to the servos based on distance from target angle
+void move_servos_to(int); // set a new target angle for the servos to move to
+const int WIGGLE_THRESHOLD = 5; // defines the distance in degrees the target must change before we update servos
+const int MAX_SPEED = 4; // defines the max amount of degrees the servos will move per update
+const int MAX_ANGLE = 90; // defines the angle of the servos needed to close the hand
+const int SPEED_SLOPE = MAX_SPEED / (MAX_ANGLE - WIGGLE_THRESHOLD);
 
 // history varibles and functions
 const int HISTORY_LENGTH = 16;
@@ -69,7 +70,7 @@ void loop()
 
   history_add(analogRead(A0));
   if(history_avg() >= 1000) {
-    move_servos_to(90);
+    move_servos_to(MAX_ANGLE);
   } else {
     move_servos_to(0);
   }
@@ -86,11 +87,30 @@ void loop()
   if (current_time > next_log) {
     next_log = current_time + LOG_RATE;
 
+
+    // message format [0 250 XXXX\n] 11 bytes total
     Serial.print(0); // To freeze the lower limit
     Serial.print(" ");
     Serial.print(250); // To freeze the upper limit
     Serial.print(" ");
+    //erial.print("%04.4i\n", history_avg());
     Serial.println(history_avg());
+    //Serial.print("\n");
+  }
+}
+
+void calc_new_angle() {
+  int diff = target_angle - current_angle;
+  diff = abs(diff);
+  
+  int speed = 0;
+  if (diff > WIGGLE_THRESHOLD) speed = SPEED_SLOPE * (diff - WIGGLE_THRESHOLD);
+  if (speed > MAX_SPEED) speed = MAX_SPEED;
+
+  if (target_angle > current_angle) {
+    current_angle += speed;
+  } else {
+    current_angle -= speed;
   }
 }
 
@@ -99,12 +119,7 @@ void update_servos() {
 
   if (current_angle != target_angle && millis() >= target_time) {
     target_time = millis() + SERVO_UPDATE_RATE;
-
-    if (target_angle > current_angle) {
-      current_angle++;
-    } else {
-      current_angle--;
-    }
+    calc_new_angle();
 
     Thumb.write(current_angle);
     Finger1.write(current_angle);
