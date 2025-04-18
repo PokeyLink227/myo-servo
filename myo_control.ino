@@ -9,10 +9,11 @@ Servo Finger1; // Servo for first finger
 Servo Finger2; // Servo for second finger
 
 
-const int buttonPin = 7;  // Button connected to pin 7
-const int THUMB_PIN = 2;
-const int FINGER1_PIN = 3;
-const int FINGER2_PIN = 4;
+const int buttonIncreasePin = 6;  // Button connected to pin 7
+const int buttonDecreasePin = 3;  // Button connected to pin 7
+const int THUMB_PIN = 9;
+const int FINGER1_PIN = 10;
+const int FINGER2_PIN = 11;
 
 int buttonState = HIGH;      // Current button state
 int lastButtonState = HIGH;  // Previous button state
@@ -51,7 +52,8 @@ void setup() {
   Finger1.attach(FINGER1_PIN); // Attach first finger servo to pin 3
   Finger2.attach(FINGER2_PIN); // Attach second finger servo to pin 4
 
-  pinMode(buttonPin, INPUT_PULLUP);  // Enable internal pull-up resistor
+  pinMode(buttonIncreasePin, INPUT_PULLUP);  // Enable internal pull-up resistor
+  pinMode(buttonDecreasePin, INPUT_PULLUP);  // Enable internal pull-up resistor
 
   // Initialize all servos at 0 degrees
   Thumb.write(0);
@@ -70,7 +72,14 @@ void loop()
   unsigned long current_time = millis();
 
   history_add(analogRead(A0));
-  calculate_target();
+  //calculate_target();
+
+  if (digitalRead(buttonIncreasePin) == HIGH && target_angle < MAX_ANGLE) {
+    target_angle++;
+  }
+  if (digitalRead(buttonDecreasePin) == HIGH && target_angle > 0) {
+    target_angle--;
+  }
 
   //if (current_time > next_update) {
     //update_log = current_time + UPDATE_RATE;
@@ -82,12 +91,16 @@ void loop()
     // message format [0 250 XXXX\n] 11 bytes total
     Serial.print(0); // To freeze the lower limit
     Serial.print(" ");
-    Serial.print(250); // To freeze the upper limit
-    Serial.print(" ");
+    //Serial.print(250); // To freeze the upper limit
+    //Serial.print(" ");
     //erial.print("%04.4i\n", history_avg());
-    Serial.println(history_avg());
+    //Serial.println(history_avg());
+    Serial.print(target_angle);
+    Serial.print(" ");
+    Serial.println(current_angle);
     //Serial.print("\n");
   }
+  delay(5);
 }
 
 void calculate_target() {
@@ -98,8 +111,8 @@ void calc_new_angle() {
   int diff = target_angle - current_angle;
   diff = abs(diff);
   
-  int speed = 0;
-  if (diff > WIGGLE_THRESHOLD) speed = SPEED_SLOPE * (diff - WIGGLE_THRESHOLD);
+  int speed = 1;
+  //if (diff > WIGGLE_THRESHOLD) speed = SPEED_SLOPE * (diff - WIGGLE_THRESHOLD);
   if (speed > MAX_SPEED) speed = MAX_SPEED;
 
   if (target_angle > current_angle) {
