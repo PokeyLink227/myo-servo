@@ -72,14 +72,14 @@ void loop()
   unsigned long current_time = millis();
 
   history_add(analogRead(A0));
-  //calculate_target();
+  calculate_target();
 
-  if (digitalRead(buttonIncreasePin) == HIGH && target_angle < MAX_ANGLE) {
-    target_angle++;
-  }
-  if (digitalRead(buttonDecreasePin) == HIGH && target_angle > 0) {
-    target_angle--;
-  }
+  // if (digitalRead(buttonIncreasePin) == HIGH && target_angle < MAX_ANGLE) {
+  //   target_angle++;
+  // }
+  // if (digitalRead(buttonDecreasePin) == HIGH && target_angle > 0) {
+  //   target_angle--;
+  // }
 
   //if (current_time > next_update) {
     //update_log = current_time + UPDATE_RATE;
@@ -91,13 +91,13 @@ void loop()
     // message format [0 250 XXXX\n] 11 bytes total
     Serial.print(0); // To freeze the lower limit
     Serial.print(" ");
-    //Serial.print(250); // To freeze the upper limit
-    //Serial.print(" ");
-    //erial.print("%04.4i\n", history_avg());
-    //Serial.println(history_avg());
-    Serial.print(target_angle);
+    Serial.print(250); // To freeze the upper limit
     Serial.print(" ");
-    Serial.println(current_angle);
+    //Serial.print("%04.4i\n", history_avg());
+    Serial.println(history_avg());
+    // Serial.print(target_angle);
+    // Serial.print(" ");
+    // Serial.println(current_angle);
     //Serial.print("\n");
   }
   delay(5);
