@@ -1,40 +1,36 @@
 #include <Servo.h>
 
-const unsigned long SERVO_UPDATE_RATE = 5;  // update servos every X ms
+// Variables to control init and main loop timings
 const unsigned long LOG_RATE = 50;    // log sensors every X ms
 const bool WAIT_FOR_SERIAL = true;
 
-Servo Thumb;   // Servo for thumb
-Servo Finger1; // Servo for first finger
-Servo Finger2; // Servo for second finger
-
-
-const int buttonIncreasePin = 6;  // Button connected to pin 7
-const int buttonDecreasePin = 3;  // Button connected to pin 7
+// Pin control variables
+const int BUTTON_INCREASE_PIN = 6;
+const int BUTTON_DECREASE_PIN = 3;
 const int THUMB_PIN = 9;
-const int FINGER1_PIN = 10;
-const int FINGER2_PIN = 11;
+const int FINGER_1_PIN = 10;
+const int FINGER_2_PIN = 11;
+Servo thumb;   // Servo for thumb
+Servo finger_1; // Servo for first finger
+Servo finger_2; // Servo for second finger
 
 int buttonState = HIGH;      // Current button state
 int lastButtonState = HIGH;  // Previous button state
-bool moveInProgress = false; // Track if movement is in progress
-bool servoPosition90 = false; // Track if servos are at 90 degrees
-
-int angleMagnitude;
 
 /* angle variables and functions
  * track the current angle globaly to enable non-blocking movement
 */
-int current_angle;
-int target_angle;
-void calculate_target(); // calculate the new target angle nased on history of sensor readings
-void update_servos(); // send new angles to servos
-void calc_new_angle(); // calculate the new angle to send to the servos based on distance from target angle
-void move_servos_to(int); // set a new target angle for the servos to move to
+const unsigned long SERVO_UPDATE_RATE = 5;  // update servos every X ms
 const int WIGGLE_THRESHOLD = 5; // defines the distance in degrees the target must change before we update servos
 const int MAX_SPEED = 4; // defines the max amount of degrees the servos will move per update
 const int MAX_ANGLE = 90; // defines the angle of the servos needed to close the hand
 const int SPEED_SLOPE = MAX_SPEED / (MAX_ANGLE - WIGGLE_THRESHOLD);
+int current_angle;
+int target_angle;
+void calculate_target(); // calculate the new target angle nased on history of sensor readings
+void set_servo_target(int); // set a new target angle for the servos to move to
+void update_current_angle(); // calculate the new angle to send to the servos based on distance from target angle
+void update_servos(); // send new current angle to servos
 
 // history varibles and functions
 const int HISTORY_LENGTH = 16;
@@ -48,17 +44,17 @@ void setup() {
   if (WAIT_FOR_SERIAL) while (!Serial); // optionally wait for serial terminal to open
   Serial.println("MyoWare Example_01_analogRead_SINGLE");
 
-  Thumb.attach(THUMB_PIN);   // Attach thumb servo to pin 2
-  Finger1.attach(FINGER1_PIN); // Attach first finger servo to pin 3
-  Finger2.attach(FINGER2_PIN); // Attach second finger servo to pin 4
+  thumb.attach(THUMB_PIN);   // Attach thumb servo to pin 2
+  finger_1.attach(FINGER_1_PIN); // Attach first finger servo to pin 3
+  finger_2.attach(FINGER_2_PIN); // Attach second finger servo to pin 4
 
-  pinMode(buttonIncreasePin, INPUT_PULLUP);  // Enable internal pull-up resistor
-  pinMode(buttonDecreasePin, INPUT_PULLUP);  // Enable internal pull-up resistor
+  pinMode(BUTTON_INCREASE_PIN, INPUT_PULLUP);  // Enable internal pull-up resistor
+  pinMode(BUTTON_DECREASE_PIN, INPUT_PULLUP);  // Enable internal pull-up resistor
 
   // Initialize all servos at 0 degrees
-  Thumb.write(0);
-  Finger1.write(0);
-  Finger2.write(0);
+  thumb.write(0);
+  finger_1.write(0);
+  finger_2.write(0);
 
   current_angle = 0;
   target_angle = 0;
@@ -100,18 +96,25 @@ void loop()
     // Serial.println(current_angle);
     //Serial.print("\n");
   }
+
   delay(5);
 }
 
 void calculate_target() {
-  move_servos_to(map(history_avg(), 0, 1024, 0, 90));
+  set_servo_target(map(history_avg(), 0, 1024, 0, 90));
 }
 
-void calc_new_angle() {
+void set_servo_target(int angle) {
+  target_angle = angle;
+}
+
+void update_current_angle() {
   int diff = target_angle - current_angle;
   diff = abs(diff);
-  
+
   int speed = 1;
+  // TODO: check if wiggle threshold works
+  //
   //if (diff > WIGGLE_THRESHOLD) speed = SPEED_SLOPE * (diff - WIGGLE_THRESHOLD);
   if (speed > MAX_SPEED) speed = MAX_SPEED;
 
@@ -125,19 +128,20 @@ void calc_new_angle() {
 void update_servos() {
   static unsigned long target_time = 0;
 
+  // This if statement ensures a signal is only sent to the servos on some interval
   if (current_angle != target_angle && millis() >= target_time) {
     target_time = millis() + SERVO_UPDATE_RATE;
-    calc_new_angle();
 
+    update_current_angle();
     Thumb.write(current_angle);
     Finger1.write(current_angle);
     Finger2.write(current_angle);
   }
 }
 
-void move_servos_to(int angle) {
-  target_angle = angle;
-}
+/*
+* Reading History related function
+*/
 
 void history_add(float new_reading) {
   static int index = 0;
