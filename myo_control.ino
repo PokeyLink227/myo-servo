@@ -33,7 +33,7 @@ void update_current_angle(); // calculate the new angle to send to the servos ba
 void update_servos(); // send new current angle to servos
 
 // history varibles and functions
-const int HISTORY_LENGTH = 16;
+const int HISTORY_LENGTH = 25;
 float history[HISTORY_LENGTH];
 void history_add(float);
 float history_avg();
@@ -133,9 +133,9 @@ void update_servos() {
     target_time = millis() + SERVO_UPDATE_RATE;
 
     update_current_angle();
-    Thumb.write(current_angle);
-    Finger1.write(current_angle);
-    Finger2.write(current_angle);
+    thumb.write(current_angle);
+    finger_1.write(current_angle);
+    finger_2.write(current_angle);
   }
 }
 
@@ -155,4 +155,3 @@ float history_avg() {
   for (int i = 0; i < HISTORY_LENGTH; i++) sum += history[i];
   return sum / HISTORY_LENGTH;
 }
-
